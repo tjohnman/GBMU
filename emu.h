@@ -456,7 +456,7 @@ namespace emu
 			// Background
 			if(mem[0xff40] & 0x01)
 			{
-				framebuffer_pixels[raster_x + raster_y*160] = gpu_pixel_color(raster_x + scroll_x, raster_y + scroll_y, mem[0xff40] & 0x08 ? 0x9c00 : 0x9800);
+				framebuffer_pixels[raster_x + raster_y*160] = gpu_pixel_color((raster_x + scroll_x)%0x100, (raster_y + scroll_y)%0x100, mem[0xff40] & 0x08 ? 0x9c00 : 0x9800);
 			}
 
 			// Window
