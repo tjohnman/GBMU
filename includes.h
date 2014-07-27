@@ -5,3 +5,5 @@
 #include <cmath>
 #include <fstream>
 #include <cstdlib>
+#include <vector>
+#include <sstream>

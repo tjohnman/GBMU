@@ -2,11 +2,14 @@
 #define EMU_H
 
 #define EMU_EV_BIOS_END 1
+#define EMU_EV_LCD_OFF 2
 
 #include "includes.h"
 
 namespace emu
 {
+	std::vector<uint16_t> trace;
+
     // Original BIOS (with logo lock)
     uint8_t bios[] = {
         0x31,0xfe,0xff,0xaf,0x21,0xff,0x9f,0x32,0xcb,0x7c,0x20,0xfb,0x21,0x26,0xff,0x0e,
@@ -56,6 +59,7 @@ namespace emu
 	bool RAMEnabled = false;
 	bool ROMBanking = true;
 	uint8_t RAM[0x8000];
+	bool LCD_Enabled = false;
 
     bool bios_ran = false;
     SDL_Texture * framebuffer;
@@ -240,7 +244,7 @@ namespace emu
 			addr -= 0xa000;
 			return RAM[addr + (selectedRAMBank*0x2000)];
 		}
-		else // Regular memory
+		else
 		{
 			if(addr >= 0xe000 && addr <= 0xfdff) addr -= 0x2000;
 			return mem[addr];
@@ -263,7 +267,6 @@ namespace emu
 
 	void reset()
 	{
-        gpu_modeclock = 0;
         gpu_mode = 1;
         gpu_vblank = false;
 
@@ -284,6 +287,11 @@ namespace emu
         mem[0xffff] = 0; // Disable interrupts
         mem[0xff0f] = 0; // Clear interrupt requests
         mem[0xff40] = 0; // LCD off
+		LCD_Enabled = false;
+		gpu_modeclock = 456;
+		mem[0xff44] = 0;
+		mem[0xff41] &= ~(0x03);
+		mem[0xff41] |= 0x01;
 		ticks = 0;
 
         mem[0xff42] = mem[0xff43] = 0; // BG scroll values
@@ -335,7 +343,8 @@ namespace emu
 			}
 		}
 
-        opcode_map[mem[reg_pc]]();
+		trace.push_back(reg_pc);
+        opcode_map[mget(reg_pc)]();
         gpu_modeclock += ticks;
 
         if(!bios_ran && mem[0xff50] != 0)
@@ -457,40 +466,32 @@ namespace emu
 			}
 
 			// Sprites (TODO)
-			for(uint16_t i=0; i<40; ++i)
-			{
-				uint16_t attr_addr = 0xfe00 + i*4;
-				uint8_t y = mem[attr_addr];
-				uint8_t x = mem[attr_addr+1];
-				uint8_t index = mem[attr_addr+2];
-				uint8_t flags = mem[attr_addr+3];
-				if(y == raster_y && raster_x >= x && raster_x <= x + 8)
-				{
-					framebuffer_pixels[raster_x + raster_y*160] = gpu_sprite_pixel_color(raster_x, raster_y, flags & 0x10 ? 0xff49 : 0xff48);
-				}
-			}
+
 		}
     }
 
     void gpu_step()
     {
     	// FF40 - LCDC - LCD Control (R/W) -- Bit 7 - LCD Display Enable (0=Off, 1=On)
-		bool LCD_enabled = (mem[0xff40] & 0x80);
-
-		// Determine GPU mode
-		if(!LCD_enabled)
+		if(!(mem[0xff40] & 0x80))
 		{
-			gpu_modeclock = 456;
-			mem[0xff44] = 0;
-			mem[0xff41] &= ~(0x03);
-			mem[0xff41] |= 0x01;
+			if(LCD_Enabled)
+			{
+				gpu_modeclock = 456;
+				mem[0xff44] = 0;
+				mem[0xff41] &= ~(0x03);
+				mem[0xff41] |= 0x01;
+				onEmulationEvent(EMU_EV_LCD_OFF);
+				LCD_Enabled = false;
+			}
 			return;
 		}
+
+		if(!LCD_Enabled) LCD_Enabled = true;
 
 		uint8_t scanline = mem[0xff44];
 		uint8_t status = mem[0xff41];
 		uint8_t prevMode = gpu_mode;
-		bool interrupt_request = false;
 
 		// Raster logic
         if(gpu_modeclock >= 456)
@@ -591,6 +592,19 @@ namespace emu
     void illegal()
     {
     	std::cout << "Encountered undefined opcode at " << std::hex << (int)reg_pc << ": " << (int)mem[reg_pc] << ". Halting.\n";
+
+		std::cout << "Dumping trace... ";
+    	std::ofstream of;
+    	of.open("trace.txt", std::ios::out);
+    	std::stringstream s;
+    	for(unsigned int i=0; i<trace.size(); ++i)
+		{
+			s << std::hex << (int)trace[i] << " (" << (int)mem[trace[i]] << ")" << "\n";
+		}
+		of.write(s.str().c_str(), s.str().size());
+		of.close();
+		std::cout << "done.\n";
+
     	stopped = true;
     }
 
@@ -2484,7 +2498,7 @@ namespace emu
 	}
     void prefix_cb()
 	{
-		cb_prefix_map[mem[++reg_pc]]();
+		cb_prefix_map[mget(++reg_pc)]();
 	}
     void callza16()
 	{
@@ -2715,7 +2729,7 @@ namespace emu
 	}
 	void jp_hl_()
 	{
-		reg_pc = mget(reg_hl()) | (mget(reg_hl()+1) << 8);
+		reg_pc = mget(reg_hl());
 		ticks=4;
 	}
 	void ld_a16_a()
