@@ -94,6 +94,20 @@ namespace emu
 
 	void (*onEmulationEvent)(int);
 
+	void memdump()
+    {
+        for(int i=0; i<0xffff; i+=16)
+        {
+            std::cout << std::hex << i << " : " << (int)mem[i] << " " << (int)mem[i+1] << "\t" << (int)mem[i+2] << " " << (int)mem[i+3] << "\t" << (int)mem[i+4] << " " << (int)mem[i+5] << "\t" << (int)mem[i+6] << " " << (int)mem[i+7] << "\t" << (int)mem[i+8] << " " << (int)mem[i+9] << "\t" << (int)mem[i+10] << " " << (int)mem[i+11] << "\t" << (int)mem[i+12] << " " << (int)mem[i+13] << "\t" << (int)mem[i+14] << " " << (int)mem[i+15] << "\n";
+        }
+    }
+
+    void regdump()
+    {
+    	std::cout << std::hex << (int) reg_pc << "\t" << (int)mem[reg_pc] << "\n";
+        std::cout << std::hex << "A: " << (int)emu::reg_a << " B: " << (int)emu::reg_b << " C: " << (int)emu::reg_c << " D: " << (int)emu::reg_d << " E: " << (int)emu::reg_e << " H: " << (int)emu::reg_h << " L: " << (int)emu::reg_l << " SP: " << emu::reg_sp << " PC: " << emu::reg_pc << "\n";
+    }
+
 	void mset(uint16_t addr, uint8_t byte)
 	{
 		// FEA0-FEFF   Not Usable
@@ -247,20 +261,6 @@ namespace emu
         mem[reg_sp+1] = (v & 0xff00) >> 8;
 	}
 
-    void memdump()
-    {
-        for(int i=0; i<0xffff; i+=16)
-        {
-            std::cout << std::hex << i << " : " << (int)mem[i] << " " << (int)mem[i+1] << "\t" << (int)mem[i+2] << " " << (int)mem[i+3] << "\t" << (int)mem[i+4] << " " << (int)mem[i+5] << "\t" << (int)mem[i+6] << " " << (int)mem[i+7] << "\t" << (int)mem[i+8] << " " << (int)mem[i+9] << "\t" << (int)mem[i+10] << " " << (int)mem[i+11] << "\t" << (int)mem[i+12] << " " << (int)mem[i+13] << "\t" << (int)mem[i+14] << " " << (int)mem[i+15] << "\n";
-        }
-    }
-
-    void regdump()
-    {
-    	std::cout << std::hex << (int) reg_pc << "\t" << (int)mem[reg_pc] << "\n";
-        std::cout << std::hex << "A: " << (int)emu::reg_a << " B: " << (int)emu::reg_b << " C: " << (int)emu::reg_c << " D: " << (int)emu::reg_d << " E: " << (int)emu::reg_e << " H: " << (int)emu::reg_h << " L: " << (int)emu::reg_l << " SP: " << emu::reg_sp << " PC: " << emu::reg_pc << "\n";
-    }
-
 	void reset()
 	{
         gpu_modeclock = 0;
@@ -283,6 +283,7 @@ namespace emu
 		IME = false;
         mem[0xffff] = 0; // Disable interrupts
         mem[0xff0f] = 0; // Clear interrupt requests
+        mem[0xff40] = 0; // LCD off
 		ticks = 0;
 
         mem[0xff42] = mem[0xff43] = 0; // BG scroll values
@@ -348,45 +349,6 @@ namespace emu
 
             MBCType = cartidge_data[0x147] > 0 && cartidge_data[0x147] <= 3 ? 1 : cartidge_data[0x147] > 3 ? 2 : 0;
             if(MBCType != 0) std::cout << "MBC" << (int)MBCType << " reported by ROM.\n";
-
-			reg_a = 0x01; reg_b = 0xb0;
-			reg_b = 0x00; reg_c = 0x13;
-			reg_d = 0x00; reg_e = 0xd8;
-			reg_h = 0x01; reg_l = 0x4d;
-			reg_sp = 0xfffe;
-
-			mem[0xff05] = 0x00;
-			mem[0xFF05] = 0x00;
-			mem[0xFF06] = 0x00;
-			mem[0xFF07] = 0x00;
-			mem[0xFF10] = 0x80;
-			mem[0xFF11] = 0xBF;
-			mem[0xFF12] = 0xF3;
-			mem[0xFF14] = 0xBF;
-			mem[0xFF16] = 0x3F;
-			mem[0xFF17] = 0x00;
-			mem[0xFF19] = 0xBF;
-			mem[0xFF1A] = 0x7F;
-			mem[0xFF1B] = 0xFF;
-			mem[0xFF1C] = 0x9F;
-			mem[0xFF1E] = 0xBF;
-			mem[0xFF20] = 0xFF;
-			mem[0xFF21] = 0x00;
-			mem[0xFF22] = 0x00;
-			mem[0xFF23] = 0xBF;
-			mem[0xFF24] = 0x77;
-			mem[0xFF25] = 0xF3;
-			mem[0xFF26] = 0xF1;
-			mem[0xFF40] = 0x91;
-			mem[0xFF42] = 0x00;
-			mem[0xFF43] = 0x00;
-			mem[0xFF45] = 0x00;
-			mem[0xFF47] = 0xFC;
-			mem[0xFF48] = 0xFF;
-			mem[0xFF49] = 0xFF;
-			mem[0xFF4A] = 0x00;
-			mem[0xFF4B] = 0x00;
-			mem[0xFFFF] = 0x00;
 
             onEmulationEvent(EMU_EV_BIOS_END);
         }
@@ -512,59 +474,81 @@ namespace emu
 
     void gpu_step()
     {
-        switch(gpu_mode)
-        {
-            case 0: // HBLANK
-                if(gpu_modeclock >= 204)
-                {
-                    gpu_modeclock = 0;
-                    ++mem[0xff44]; // GPU line
+    	// FF40 - LCDC - LCD Control (R/W) -- Bit 7 - LCD Display Enable (0=Off, 1=On)
+		bool LCD_enabled = (mem[0xff40] & 0x80);
 
-                    if(mem[0xff44] == 144)
-                    {
-                        // VBLANK
-                        gpu_mode = 1;
-                        SDL_UpdateTexture(framebuffer, NULL, framebuffer_pixels, 160 * sizeof(Uint32));
-                        mem[0xff0f] |= 0x01;
-                        gpu_vblank = true;
-                    }
-                    else
-                    {
-                        gpu_mode = 2;
-                    }
-                }
-                break;
-            case 1: // VBLANK
-                if(gpu_modeclock >= 456)
-                {
-                    gpu_modeclock = 0;
-                    ++mem[0xff44];
+		// Determine GPU mode
+		if(!LCD_enabled)
+		{
+			gpu_modeclock = 456;
+			mem[0xff44] = 0;
+			mem[0xff41] &= ~(0x03);
+			mem[0xff41] |= 0x01;
+			return;
+		}
 
-                    if(mem[0xff44] > 153)
-                    {
-                        gpu_mode = 2;
-                        mem[0xff44] = 0;
-                    }
-                }
-                break;
-            case 2:
-                if(gpu_modeclock >= 80)
-                {
-                    gpu_modeclock = 0;
-                    gpu_mode = 3;
-                }
-                break;
-            case 3:
-                if(gpu_modeclock >= 172)
-                {
-                    // HBLANK
-                    gpu_modeclock = 0;
-                    gpu_mode = 0;
+		uint8_t scanline = mem[0xff44];
+		uint8_t status = mem[0xff41];
+		uint8_t prevMode = gpu_mode;
+		bool interrupt_request = false;
 
-                    gpu_draw_scanline();
-                }
-                break;
-        }
+		// Raster logic
+        if(gpu_modeclock >= 456)
+		{
+			gpu_modeclock %= 456;
+
+			++scanline;; // Scanline advance
+
+			if(scanline == 144) // Entering v-blank
+			{
+				gpu_draw_scanline();
+                SDL_UpdateTexture(framebuffer, 0, framebuffer_pixels, 160 * 4);
+                gpu_vblank = true;
+                gpu_mode = 1;
+                mem[0xff0f] |= 0x01; // Request LCD v-blank interrupt
+			}
+			else if(scanline > 153)
+			{
+				scanline = 0;
+			}
+			else if(scanline < 144)
+			{
+				gpu_draw_scanline();
+			}
+		}
+		else if(gpu_modeclock >= 201 && gpu_modeclock <= 207)
+		{
+			gpu_mode = 0;
+		}
+		else if(gpu_modeclock >= 77 && gpu_modeclock <= 83)
+		{
+			gpu_mode = 2;
+		}
+		else if(gpu_modeclock >= 169 && gpu_modeclock >= 175)
+		{
+			gpu_mode = 3;
+		}
+
+		if(scanline == mem[0xff45])
+		{
+			status |= 0x04;
+			if(status & 0x40)
+			{
+				mem[0xff0f] |= 0x02; // Request LCD status interrupt
+			}
+		}
+
+		if(prevMode != gpu_mode)
+		{
+				 if(gpu_mode == 0 && status & 0x08) mem[0xff0f] |= 0x02; // Request LCD status interrupt (hblank)
+			else if(gpu_mode == 1 && status & 0x10) mem[0xff0f] |= 0x02; // Request LCD status interrupt (vblank)
+			else if(gpu_mode == 2 && status & 0x20) mem[0xff0f] |= 0x02; // Request LCD status interrupt (OAM)
+		}
+
+		status = (status & ~0x03) | (gpu_mode & 0x03);
+
+		mem[0xff44] = scanline;
+		mem[0xff41] = status;
     }
 
     void process_interrupts()
@@ -604,6 +588,12 @@ namespace emu
         mem[0xff0f] |= 0x10;
     }
 
+    void illegal()
+    {
+    	std::cout << "Encountered undefined opcode at " << std::hex << (int)reg_pc << ": " << (int)mem[reg_pc] << ". Halting.\n";
+    	stopped = true;
+    }
+
     void nop()
 	{
 		++reg_pc;
@@ -617,18 +607,15 @@ namespace emu
     }
     void ld_bc_a()
     {
-    	mset(reg_bc(), reg_a);;
+    	mset(reg_bc(), reg_a);
     	reg_pc += 1;
     	ticks = 8;
     }
     void incbc()
     {
-    	reg_c++;
-    	if(reg_c > 0xff)
-    	{
-    		reg_b++;
-    		reg_c %= 0xff;
-    	}
+    	uint16_t v = reg_bc() + 1;
+    	reg_b = (v & 0xff00) >> 8;
+    	reg_c = v & 0x00ff;
     	reg_pc++;
     	ticks=8;
     }
@@ -666,7 +653,7 @@ namespace emu
     }
     void rlca()
     {
-    	reg_f |= (reg_a & 0x80) >> 4;
+    	reg_f |= (reg_a & 0x80) >> 3;
     	reg_a = reg_a << 1;
     	reg_a |= (reg_f & 0x10) >> 4;
     	reg_pc++;
@@ -704,7 +691,7 @@ namespace emu
     void decbc()
     {
     	uint16_t v = reg_bc() - 1;
-    	reg_b = (v & 0xff00) << 8;
+    	reg_b = (v & 0xff00) >> 8;
     	reg_c = v & 0x00ff;
     	++reg_pc;
     	ticks=8;
@@ -740,7 +727,7 @@ namespace emu
     }
     void rrca()
     {
-    	reg_f |= (reg_a & 0x01) << 8;
+    	reg_f |= (reg_a & 0x01) << 4;
     	reg_a = reg_a >> 1;
     	reg_a |= (reg_f & 0x10) << 3;
     	++reg_pc;
@@ -763,7 +750,7 @@ namespace emu
     void ld_de_a()
     {
     	mset(reg_de(), reg_a);
-    	reg_pc+=3;
+    	++reg_pc;
     	ticks=8;
     }
     void incde()
@@ -863,11 +850,11 @@ namespace emu
     void dece()
     {
     	reg_f |= 0x40;
-    	if(reg_e == 0x0f) reg_f |= 0x20;
-    	else reg_f &= 0xdf;
+    	if(reg_e == 0x10) reg_f |= 0x20;
+    	else reg_f &= ~0x20;
     	--reg_e;
     	if(reg_e == 0) reg_f |= 0x80;
-    	else reg_f &= 0x7f;
+    	else reg_f &= ~0x80;
     	++reg_pc;
     	ticks=4;
     }
@@ -879,10 +866,10 @@ namespace emu
     }
     void rra()
     {
-    	uint8_t cb = (reg_f & 0x10) >> 4;
+    	reg_f = 0;
+    	uint8_t cb = (reg_f & 0x10) << 3;
     	reg_f |= (reg_a & 0x01) << 4;
-    	reg_a = reg_a >> 1;
-    	reg_a |= cb;
+    	reg_a = (reg_a >> 1) | cb;
     	++reg_pc;
     	ticks=4;
     }
@@ -927,12 +914,12 @@ namespace emu
     }
     void inch()
     {
-    	reg_f &= 0xbf;
+    	reg_f &= ~0x40;
     	if(reg_h == 0x0f) reg_f |= 0x20;
-    	else reg_f &= 0xdf;
+    	else reg_f &= ~0x20;
     	++reg_h;
     	if(reg_h == 0) reg_f |= 0x80;
-    	else reg_f &= 0x7f;
+    	else reg_f &= ~0x80;
     	++reg_pc;
     	ticks=4;
     }
@@ -1174,7 +1161,7 @@ namespace emu
     void ld_hl_d8()
 	{
         mset(reg_hl(), mem[reg_pc+1]);
-        ticks =12;
+        ticks=12;
         reg_pc+=2;
     }
     void scf()
@@ -1251,7 +1238,7 @@ namespace emu
     }
     void ldad8()
 	{
-        reg_a= mem[reg_pc+1];
+        reg_a=mem[reg_pc+1];
         ticks=8;
         reg_pc+=2;
     }
@@ -1299,7 +1286,7 @@ namespace emu
         reg_pc+=1;
     }
     void ldba(){
-        reg_c=reg_a;
+        reg_b=reg_a;
         ticks=4;
         reg_pc+=1;
     }
@@ -2689,7 +2676,7 @@ namespace emu
 	void ld_c_a()
 	{
 		mset(0xff00 + reg_c, reg_a);
-		reg_pc+=2;
+		++reg_pc;
 		ticks=8;
 	}
 	void pushhl()
@@ -2767,8 +2754,8 @@ namespace emu
 	}
 	void lda_c_()
 	{
-		reg_a = mget(reg_c);
-		reg_pc+=2;
+		reg_a = mget(0xff00 + reg_c);
+		++reg_pc;
 		ticks=8;
 	}
 	void di()
@@ -3988,7 +3975,7 @@ namespace emu
         opcode_map[0xd0] = retnc;
         opcode_map[0xd1] = popde;
         opcode_map[0xd2] = jpnca16;
-        opcode_map[0xd3] = nop;
+        opcode_map[0xd3] = illegal;
         opcode_map[0xd4] = callnca16;
         opcode_map[0xd5] = pushde;
         opcode_map[0xd6] = subd8;
@@ -3996,32 +3983,32 @@ namespace emu
         opcode_map[0xd8] = retc;
         opcode_map[0xd9] = reti;
         opcode_map[0xda] = jpca16;
-        opcode_map[0xdb] = nop;
+        opcode_map[0xdb] = illegal;
         opcode_map[0xdc] = callca16;
-        opcode_map[0xdd] = nop;
+        opcode_map[0xdd] = illegal;
         opcode_map[0xde] = sbcad8;
         opcode_map[0xdf] = rst18h;
         opcode_map[0xe0] = ldh_a8_a;
         opcode_map[0xe1] = pophl;
         opcode_map[0xe2] = ld_c_a;
-        opcode_map[0xe3] = nop;
-        opcode_map[0xe4] = nop;
+        opcode_map[0xe3] = illegal;
+        opcode_map[0xe4] = illegal;
         opcode_map[0xe5] = pushhl;
         opcode_map[0xe6] = andd8;
         opcode_map[0xe7] = rst20h;
         opcode_map[0xe8] = addspr8;
         opcode_map[0xe9] = jp_hl_;
         opcode_map[0xea] = ld_a16_a;
-        opcode_map[0xeb] = nop;
-        opcode_map[0xec] = nop;
-        opcode_map[0xed] = nop;
+        opcode_map[0xeb] = illegal;
+        opcode_map[0xec] = illegal;
+        opcode_map[0xed] = illegal;
         opcode_map[0xee] = xord8;
         opcode_map[0xef] = rst28h;
         opcode_map[0xf0] = ldha_a8_;
         opcode_map[0xf1] = popaf;
         opcode_map[0xf2] = lda_c_;
         opcode_map[0xf3] = di;
-        opcode_map[0xf4] = nop;
+        opcode_map[0xf4] = illegal;
         opcode_map[0xf5] = pushaf;
         opcode_map[0xf6] = ord8;
         opcode_map[0xf7] = rst30h;
@@ -4029,8 +4016,8 @@ namespace emu
         opcode_map[0xf9] = ldsphl;
         opcode_map[0xfa] = lda_a16_;
         opcode_map[0xfb] = ei;
-        opcode_map[0xfc] = nop;
-        opcode_map[0xfd] = nop;
+        opcode_map[0xfc] = illegal;
+        opcode_map[0xfd] = illegal;
         opcode_map[0xfe] = cpd8;
         opcode_map[0xff] = rst38h;
 

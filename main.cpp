@@ -95,7 +95,7 @@ int main(int argc, char ** argv)
 					default:
 						if(printRegMode)
 						{
-							emu::next(0);
+							emu::next(0.001);
 							emu::process_interrupts();
 							emu::gpu_step();
 							emu::regdump();
@@ -115,6 +115,17 @@ int main(int argc, char ** argv)
 			SDL_RenderPresent(ren);
 
 			emu::gpu_vblank = false;
+		}
+		else if((!emu::mem[0xff40] & 0x80)) // LCD disabled
+		{
+			SDL_RenderClear(ren);
+			SDL_RenderPresent(ren);
+		}
+
+		if(!printRegMode && emu::reg_pc == -1)
+		{
+			std::cout << "Print Reg Mode ON\n";
+			printRegMode = true;
 		}
 
 		if(!printRegMode)
