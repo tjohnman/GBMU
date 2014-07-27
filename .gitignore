@@ -1,3 +1,11 @@
+# Codeblocks stuff
+obj/*
+bin/*
+*.cbp
+*.depend
+*.layout
+*.dll
+
 # Compiled Object files
 *.slo
 *.lo
