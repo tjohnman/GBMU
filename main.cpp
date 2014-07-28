@@ -9,6 +9,10 @@ void onFatalError(const std::string & msg, bool SDLInitialized = true);
 SDL_Window * win;
 SDL_Renderer * ren;
 std::string windowTitle = "GBMU";
+SDL_Event e;
+bool done = false;
+Uint32 ticks = 0, prevTicks = 0;
+double elapsedTime = 0, elapsedCycles = 0;
 
 void onEmulationEvent(int id)
 {
@@ -25,6 +29,9 @@ void onEmulationEvent(int id)
 		break;
 	}
 }
+
+void processEvents();
+void update();
 
 int main(int argc, char ** argv)
 {
@@ -74,101 +81,101 @@ int main(int argc, char ** argv)
     is.read((char*)emu::cartidge_data, s);
     is.close();
 
-    Uint32 ticks = 0, prevTicks = 0;
-    double elapsedTime = 0, elapsedCycles = 0;
-
     emu::reset();
     SDL_RenderClear(ren);
 
-	SDL_Event e;
-	bool done = false;
 	while(!done)
 	{
-		while(SDL_PollEvent(&e))
-		{
-			if(e.type == SDL_QUIT)
-			{
-				done = true;
-			}
-
-            if(e.type == SDL_KEYUP)
-            {
-                switch(e.key.keysym.sym)
-                {
-					case SDLK_SPACE:
-						printRegMode = !printRegMode;
-						break;
-					case SDLK_ESCAPE:
-						if(printRegMode)
-						{
-							emu::illegal();
-						}
-						done = true;
-						break;
-					default:
-						if(printRegMode)
-						{
-							emu::next(0.001);
-							emu::process_interrupts();
-							emu::gpu_step();
-							emu::regdump();
-							std::cout << std::hex << (int)emu::mem[0xff40] << "\n";
-						}
-						else
-						{
-							emu::onEvent(e);
-						}
-						break;
-                }
-            }
-		}
-
-
-		if(emu::LCD_Enabled && emu::gpu_vblank) // LCD enabled
-		{
-			SDL_RenderCopy(ren, emu::framebuffer, 0, 0);
-			SDL_RenderPresent(ren);
-			emu::gpu_vblank = false;
-		}
-
-
-
-		if(!printRegMode && emu::reg_pc == 0xffff)
-		{
-			std::cout << "Print Reg Mode ON\n";
-			printRegMode = true;
-		}
-
-		if(!printRegMode)
-		{
-			prevTicks = ticks;
-			ticks = SDL_GetTicks();
-			double delta = (ticks - prevTicks) / 1000.0;
-
-			emu::next(delta);
-			emu::process_interrupts();
-			emu::gpu_step();
-
-			elapsedTime += delta;
-			elapsedCycles += emu::ticks;
-
-			if(elapsedTime >= 5)
-			{
-				double mhz = (elapsedCycles / (elapsedTime / 1000.0))/1024/1024/1024;
-
-				std::stringstream s;
-				s << windowTitle << " (" << mhz << " MHz)";
-				SDL_SetWindowTitle(win, s.str().c_str());
-
-				elapsedTime = elapsedCycles = 0;
-			}
-		}
+		processEvents();
+		update();
 	}
 
 	SDL_DestroyRenderer(ren);
 	SDL_DestroyWindow(win);
 	SDL_Quit();
 	return 0;
+}
+
+void processEvents()
+{
+	while(SDL_PollEvent(&e))
+	{
+		switch(e.type)
+		{
+		case SDL_QUIT:
+			{
+				done = true;
+			}
+			break;
+
+		case SDL_KEYUP:
+			{
+				switch(e.key.keysym.sym)
+				{
+				case SDLK_SPACE:
+					printRegMode = !printRegMode;
+					break;
+				case SDLK_ESCAPE:
+					if(printRegMode)
+					{
+						emu::illegal();
+					}
+					done = true;
+					break;
+				default:
+					if(printRegMode)
+					{
+						emu::next(0.001);
+						emu::process_interrupts();
+						emu::gpu_step();
+						emu::regdump();
+						std::cout << std::hex << (int)emu::mem[0xff40] << "\n";
+					}
+					else
+					{
+						emu::onEvent(e);
+					}
+					break;
+				}
+			}
+			break;
+		}
+	}
+}
+
+void update()
+{
+	if(emu::LCD_Enabled && emu::gpu_vblank) // LCD enabled
+	{
+		SDL_RenderCopy(ren, emu::framebuffer, 0, 0);
+		SDL_RenderPresent(ren);
+		emu::gpu_vblank = false;
+	}
+
+	if(!printRegMode)
+	{
+		prevTicks = ticks;
+		ticks = SDL_GetTicks();
+		double delta = (ticks - prevTicks) / 1000.0;
+
+		emu::next(delta);
+		emu::process_interrupts();
+		emu::gpu_step();
+
+		elapsedTime += delta;
+		elapsedCycles += emu::ticks;
+
+		if(elapsedTime >= 5)
+		{
+			double mhz = (elapsedCycles / (elapsedTime / 1000.0))/1024/1024/1024;
+
+			std::stringstream s;
+			s << windowTitle << " (" << mhz << " MHz)";
+			SDL_SetWindowTitle(win, s.str().c_str());
+
+			elapsedTime = elapsedCycles = 0;
+		}
+	}
 }
 
 void onFatalError(const std::string & msg, bool SDLInitialized)

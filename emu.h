@@ -4293,14 +4293,14 @@ namespace emu
         cb_prefix_map[0xff] = cb_set7a;
     }
 
-    void onEvent(const SDL_Event & e)
+    void onEvent(const SDL_Event &event)
     {
     	mem[0xff0f] |= 0x10; // Request joypad interrupt
 
     	bool selectedDirectionKeys = (mem[0xff00] & 0x10) && !(mem[0xff00] & 0x20);
-		if(e.type == SDL_KEYDOWN)
+		if(event.type == SDL_KEYDOWN)
 		{
-			switch(e.key.keysym.sym)
+			switch(event.key.keysym.sym)
 			{
 			case SDLK_DOWN:
 				if(selectedDirectionKeys) mem[0xff00] &= ~(0x08);
@@ -4328,8 +4328,8 @@ namespace emu
 				break;
 			}
 		}
-		else if(e.type == SDL_KEYUP)
-			switch(e.key.keysym.sym)
+		else if(event.type == SDL_KEYUP)
+			switch(event.key.keysym.sym)
 			{
 				case SDLK_DOWN:
 					if(selectedDirectionKeys) mem[0xff00] |= 0x08;
