@@ -7,13 +7,16 @@ OBJECTS = $(SOURCES:.cpp=.o)
 LIBS_MAC = -I/Library/Frameworks/SDL2.framework/Headers -framework SDL2 -framework Cocoa
 LIBS_WIN = -I../SDL2-2.0.3/i686-w64-mingw32/include -L../SDL2-2.0.3/i686-w64-mingw32/lib -lmingw32 -lSDL2main -lSDL2
 
-all: win mac
+SYS = $(shell gcc -dumpmachine)
 
-win: $(OBJECTS)
-	$(CC) $(LIBS_MAC) $(OBJECTS) -o $(EXEC)
+all: $(EXEC)
 
-mac: $(OBJECTS)
+$(EXEC): $(OBJECTS)
+ifneq (,$(findstring mingw, $(SYS)))
+	$(CC) $(LIBS_WIN) $(OBJECTS) -o $(EXEC)
+else ifneq (,$(findstring darwin, $(SYS)))
 	$(CC) $(LIBS_MAC) $(OBJECTS) -o $(EXEC)
+endif
 
 %.o: %.cpp
 	$(CC) -c $(CC_FLAGS) $< -o $@

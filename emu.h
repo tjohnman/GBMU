@@ -541,9 +541,9 @@ namespace emu
 
 		if(prevMode != gpu_mode)
 		{
-				 if(gpu_mode == 0 && status & 0x08) mem[0xff0f] |= 0x02; // Request LCD status interrupt (hblank)
-			else if(gpu_mode == 1 && status & 0x10) mem[0xff0f] |= 0x02; // Request LCD status interrupt (vblank)
-			else if(gpu_mode == 2 && status & 0x20) mem[0xff0f] |= 0x02; // Request LCD status interrupt (OAM)
+				 if(gpu_mode == 0 && (status & 0x08)) mem[0xff0f] |= 0x02; // Request LCD status interrupt (hblank)
+			else if(gpu_mode == 1 && (status & 0x10)) mem[0xff0f] |= 0x02; // Request LCD status interrupt (vblank)
+			else if(gpu_mode == 2 && (status & 0x20)) mem[0xff0f] |= 0x02; // Request LCD status interrupt (OAM)
 		}
 
 		status = (status & ~0x03) | (gpu_mode & 0x03);
@@ -2292,7 +2292,7 @@ namespace emu
     void cpc()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_c)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_c)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_c > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -2305,7 +2305,7 @@ namespace emu
     void cpd()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_d)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_d)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_d > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -2318,7 +2318,7 @@ namespace emu
     void cpe()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_e)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_e)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_e > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -2331,7 +2331,7 @@ namespace emu
     void cph()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_h)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_h)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_h > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -2344,7 +2344,7 @@ namespace emu
     void cpl()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_l)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_l)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_l > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -2358,7 +2358,7 @@ namespace emu
 	{
 		uint8_t v = mget(reg_hl());
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-v)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-v)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(v > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -2372,7 +2372,7 @@ namespace emu
     void cpa()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_a)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_a)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		reg_f &= 0b11100000;
 		uint8_t a = reg_a - reg_a;
@@ -2659,7 +2659,7 @@ namespace emu
 	{
 		uint8_t v = mget(reg_pc+1);
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-v-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-v-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if((v+(reg_f&0x20?1:0)) > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -2835,7 +2835,7 @@ namespace emu
 	{
 		uint8_t v = mem[reg_pc+1];
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-v)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-v)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(v > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
