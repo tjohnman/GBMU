@@ -1,6 +1,10 @@
 GBMU
 trace.txt
 
+# Eclipse stuff
+.cproject
+.project
+
 # Codeblocks stuff
 obj/*
 bin/*
