@@ -140,7 +140,7 @@ namespace emu
 			{
 				if(MBCType == 1 || MBCType == 2) // RAM enable
 				{
-					if(MBCType == 2 && addr & 0x10) return;
+					if(MBCType == 2 && (addr & 0x10)) return;
 					RAMEnabled = !(byte & 0x0f);
 					if(RAMEnabled) std::cout << "RAM is now enabled.\n"; else std::cout << "RAM is now disabled.\n";
 				}
@@ -370,7 +370,7 @@ namespace emu
 		}
     }
 
-    // TODO
+    // TODO Sprite rendering
     Uint32 gpu_sprite_pixel_color(uint16_t x, uint16_t y, uint16_t palette_addr)
     {
 		uint8_t tx = x/8;
@@ -465,7 +465,7 @@ namespace emu
 				framebuffer_pixels[raster_x + raster_y*160] = gpu_pixel_color(raster_x, raster_y, mem[0xff40] & 0x40 ? 0x9c00 : 0x9800);
 			}
 
-			// Sprites (TODO)
+			// TODO Sprite rendering call goes here
 
 		}
     }
@@ -556,11 +556,11 @@ namespace emu
     {
         if(IME)
         {
-            if(mem[0xffff] & 0x01 && mem[0xff0f] & 0x01) { IME = false; mem[0xff0f] &= 0b11111110; _stack_push(reg_pc); reg_pc = 0x0040; } // VBLANK
-            if(mem[0xffff] & 0x02 && mem[0xff0f] & 0x02) { IME = false; mem[0xff0f] &= 0b11111101; _stack_push(reg_pc); reg_pc = 0x0048; } // LCD STAT
-            if(mem[0xffff] & 0x04 && mem[0xff0f] & 0x04) { IME = false; mem[0xff0f] &= 0b11111011; _stack_push(reg_pc); reg_pc = 0x0050; } // TIMER
-            if(mem[0xffff] & 0x08 && mem[0xff0f] & 0x08) { IME = false; mem[0xff0f] &= 0b11110111; _stack_push(reg_pc); reg_pc = 0x0058; } // SERIAL
-            if(mem[0xffff] & 0x10 && mem[0xff0f] & 0x10) { IME = false; mem[0xff0f] &= 0b11101111; _stack_push(reg_pc); reg_pc = 0x0060; } // JOYPAD
+            if((mem[0xffff] & 0x01) && (mem[0xff0f] & 0x01)) { IME = false; mem[0xff0f] &= 0b11111110; _stack_push(reg_pc); reg_pc = 0x0040; } // VBLANK
+            if((mem[0xffff] & 0x02) && (mem[0xff0f] & 0x02)) { IME = false; mem[0xff0f] &= 0b11111101; _stack_push(reg_pc); reg_pc = 0x0048; } // LCD STAT
+            if((mem[0xffff] & 0x04) && (mem[0xff0f] & 0x04)) { IME = false; mem[0xff0f] &= 0b11111011; _stack_push(reg_pc); reg_pc = 0x0050; } // TIMER
+            if((mem[0xffff] & 0x08) && (mem[0xff0f] & 0x08)) { IME = false; mem[0xff0f] &= 0b11110111; _stack_push(reg_pc); reg_pc = 0x0058; } // SERIAL
+            if((mem[0xffff] & 0x10) && (mem[0xff0f] & 0x10)) { IME = false; mem[0xff0f] &= 0b11101111; _stack_push(reg_pc); reg_pc = 0x0060; } // JOYPAD
         }
     }
 
@@ -1833,7 +1833,7 @@ namespace emu
     void subb()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_b)&0x10)) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_b)&0x10)) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_b > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -1846,7 +1846,7 @@ namespace emu
     void subc()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_c)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_c)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_c > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -1859,7 +1859,7 @@ namespace emu
     void subd()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_d)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_d)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_d > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -1872,7 +1872,7 @@ namespace emu
     void sube()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_e)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_e)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_e > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -1885,7 +1885,7 @@ namespace emu
     void subh()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_h)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_h)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_h > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -1898,7 +1898,7 @@ namespace emu
     void subl()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_l)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_l)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_l > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -1912,7 +1912,7 @@ namespace emu
 	{
 		uint8_t v = mget(reg_hl());
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-v)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-v)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(v > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -1935,7 +1935,7 @@ namespace emu
     void sbcab()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_b-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_b-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if((reg_b+(reg_f&0x20?1:0)) > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -1948,7 +1948,7 @@ namespace emu
     void sbcac()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_c-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_c-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if((reg_c+(reg_f&0x20?1:0)) > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -1961,7 +1961,7 @@ namespace emu
     void sbcad()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_d-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_d-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if((reg_d+(reg_f&0x20?1:0)) > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -1974,7 +1974,7 @@ namespace emu
     void sbcae()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_e-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_e-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if((reg_e+(reg_f&0x20?1:0)) > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -1987,7 +1987,7 @@ namespace emu
     void sbcah()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_h-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_h-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if((reg_h+(reg_f&0x20?1:0)) > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -2000,7 +2000,7 @@ namespace emu
     void sbcal()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_l-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_l-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if((reg_l+(reg_f&0x20?1:0)) > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -2014,7 +2014,7 @@ namespace emu
 	{
 		uint8_t v = mget(reg_hl());
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-v-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-v-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if((v+(reg_f&0x20?1:0)) > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -2027,7 +2027,7 @@ namespace emu
     void sbcaa()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_a-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_a-(reg_f&0x20?1:0))&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if((reg_a+(reg_f&0x20?1:0)) > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -2279,7 +2279,7 @@ namespace emu
     void cpb()
 	{
 		reg_f |= 0x40;
-		if(reg_a & 0x10 && !((reg_a-reg_b)&0x10) ) reg_f |= 0x20;
+		if((reg_a & 0x10) && !((reg_a-reg_b)&0x10) ) reg_f |= 0x20;
 		else reg_f &= 0b11010000;
 		if(reg_b > reg_a) reg_f |= 0x10;
 		else reg_f &= 0b11100000;
@@ -4297,7 +4297,7 @@ namespace emu
     {
     	mem[0xff0f] |= 0x10; // Request joypad interrupt
 
-    	bool selectedDirectionKeys = mem[0xff00] & 0x10 && !(mem[0xff00] & 0x20);
+    	bool selectedDirectionKeys = (mem[0xff00] & 0x10) && !(mem[0xff00] & 0x20);
 		if(e.type == SDL_KEYDOWN)
 		{
 			switch(e.key.keysym.sym)
