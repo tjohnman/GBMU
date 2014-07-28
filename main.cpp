@@ -133,7 +133,7 @@ int main(int argc, char ** argv)
 
 
 
-		if(!printRegMode && emu::reg_pc == -1)
+		if(!printRegMode && emu::reg_pc == 0xffff)
 		{
 			std::cout << "Print Reg Mode ON\n";
 			printRegMode = true;
